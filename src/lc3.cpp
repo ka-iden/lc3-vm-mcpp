@@ -75,6 +75,7 @@ enum {
     TRAP_IN = 0x23,    /* get character from keyboard, echoed onto the terminal */
     TRAP_PUTSP = 0x24, /* output a byte string */
     TRAP_HALT = 0x25,  /* halt the program */
+    TRAP_PUTN = 0x26,   // print r0 to console
     TRAP_REG = 0x27,   // print registers to console
     TRAP_CHAT = 0x28,  // post string to chat
     TRAP_GETP = 0x29,  // get player tile
@@ -313,6 +314,27 @@ template <unsigned op> void ins(uint16_t instr) {
             puts("HALT");
             fflush(stdout);
             running = 0;
+        } else if (trapvect == TRAP_PUTN) {
+            // Unsigned, default
+            char* template_str = (char*)"Unsigned Number in R0: %u\n";
+            // Print as signed, requires conversion
+            if (flag_set(FLAG_SIG)) {
+                template_str = (char*)"Number in R0: %d\n";
+                printf(template_str, unsigned_to_signed(reg[0]));
+            }
+            // Print as binary, requires hacky macro
+            else if (flag_set(FLAG_BIN)) {
+                printf("Binary Number in R0: " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN "\n",
+                           BYTE_TO_BINARY(reg[0] >> 8), BYTE_TO_BINARY(reg[0]));
+            } else {
+                // Print as hex
+                if (flag_set(FLAG_HEX)) {
+                    template_str = (char*)"Hex Number in R0: x%X\n";
+                }
+                // If no flags or -u, print as unsigned default
+                printf(template_str, reg[0]);
+            }
+            printf("----\n");
         } else if (trapvect == TRAP_REG) {
             // Unsigned, default
             char* template_str = (char*)"R%d: %u\n";
